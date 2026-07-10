@@ -39,11 +39,7 @@ Transparent PNG and compressed/RLE BMP files are rejected with an actionable mes
 Open **User guide** in the header for the full workflow. Contextual `?` controls explain camera, depth, density, and target-resolution behavior without leaving the current step.
 
 - **Target resolution** sets the maximum fitted width and height. Presets for 64, 128, and 256 pixels are available; aspect ratio is always preserved.
-- **Block density** constrains fallback conflict resolution. Higher values keep the sculpture compact; lower values permit more depth only when pixels cannot remain conflict-free on the shared projection plane. Front coverage and correct visibility always take priority.
-
-## Coverage-first placement
-
-The solver intersects pixel rays with a shared projection plane near the one-block-per-pixel scale, searches voxel-grid phases that maximize face-adjacent neighboring blocks, and moves only conflicting pixels into deeper layers. Candidate results are ranked lexicographically by supersampled front-view coverage, exact first-hit visibility, occupied depth, and finally block count. Coverage, adjacency ratio, and depth span are shown after generation and in the Export summary.
+- **Block density** changes how tightly the fixed block count is packed through the available depth. Higher values are more compact; lower values spread blocks farther for a stronger off-axis disguise.
 
 ## Export assumptions
 
