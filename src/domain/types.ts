@@ -53,6 +53,9 @@ export interface GenerationDiagnostics {
   verified: boolean;
   blockCount: number;
   volume: number;
+  frontCoverage: number;
+  adjacentPixelRatio: number;
+  depthSpan: number;
   meanDeltaE: number;
   maxDeltaE: number;
   disguiseScores: number[];

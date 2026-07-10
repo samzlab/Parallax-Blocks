@@ -5,3 +5,5 @@ coverage/
 *.tsbuildinfo
 test-results/
 playwright-report/
+node_modules/*
+.pnpm-store/

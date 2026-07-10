@@ -1,0 +1,41 @@
+name: Deploy static content to Pages
+
+on:
+  push:
+    branches: ["main"] # Vagy a saját alapértelmezett branched neve
+
+  # Lehetővé teszi a manuális futtatást az Actions fülről
+  workflow_dispatch:
+
+# Szükséges jogosultságok beállítása a GitHub tokenhez
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Biztosítja, hogy egyszerre csak egy deployment fusson
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps: deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
