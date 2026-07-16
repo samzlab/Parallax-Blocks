@@ -1,6 +1,6 @@
 import { describe,expect,it } from 'vitest';
 import { generateSculpture,verifyFirstHits } from '../src/domain/generator';
-import { pixelRays } from '../src/domain/geometry';
+import { pixelRays,rayBoxDistance } from '../src/domain/geometry';
 import type { GenerationRequest, OutputImage } from '../src/domain/types';
 
 function request(width=4,height=3):GenerationRequest{
@@ -11,5 +11,24 @@ describe('anamorphic generator',()=>{
   it('assigns one unique, verified block per pixel',async()=>{const input=request();const sculpture=await generateSculpture(input);expect(sculpture.paletteIndices).toHaveLength(12);const keys=new Set(Array.from({length:12},(_,i)=>`${sculpture.coordinates[i*3]},${sculpture.coordinates[i*3+1]},${sculpture.coordinates[i*3+2]}`));expect(keys.size).toBe(12);expect(sculpture.diagnostics.verified).toBe(true);});
   it('is deterministic',async()=>{const a=await generateSculpture(request()),b=await generateSculpture(request());expect([...a.coordinates]).toEqual([...b.coordinates]);expect(a.diagnostics.effectiveOffset).toBe(b.diagnostics.effectiveOffset);});
   it('uses density to compact the occupied depth range',async()=>{const spread=request(8,6),compact=request(8,6);spread.options.blockDensity=10;compact.options.blockDensity=100;const a=await generateSculpture(spread),b=await generateSculpture(compact);const span=(values:Int32Array)=>{const z=Array.from({length:values.length/3},(_,index)=>values[index*3+2]!);return Math.max(...z)-Math.min(...z);};expect(span(b.coordinates)).toBeLessThanOrEqual(span(a.coordinates));expect(b.paletteIndices.length).toBe(a.paletteIndices.length);});
+  it('densely covers the correct view while retaining randomized depth',async()=>{
+    const input=request(24,24),sculpture=await generateSculpture(input),scale=4;
+    const rays=pixelRays(sculpture.camera,input.image.width*scale,input.image.height*scale);
+    let covered=0;
+    for(let pixel=0;pixel<rays.length/3;pixel++){
+      const rayAt=pixel*3,ray:[number,number,number]=[rays[rayAt]!,rays[rayAt+1]!,rays[rayAt+2]!];
+      for(let block=0;block<sculpture.coordinates.length/3;block++){
+        const at=block*3;
+        if(rayBoxDistance(sculpture.camera.position,ray,sculpture.coordinates[at]!,sculpture.coordinates[at+1]!,sculpture.coordinates[at+2]!)<Infinity){covered++;break;}
+      }
+    }
+    const depths=new Set(Array.from({length:sculpture.coordinates.length/3},(_,index)=>sculpture.coordinates[index*3+2]));
+    expect(covered/(input.image.width*input.image.height*scale*scale)).toBeGreaterThan(0.7);
+    expect(depths.size).toBeGreaterThan(8);
+    const alternate=request(24,24);alternate.seed=input.seed+1;
+    const alternateSculpture=await generateSculpture(alternate);
+    const changedDepths=Array.from({length:sculpture.coordinates.length/3},(_,index)=>sculpture.coordinates[index*3+2]!==alternateSculpture.coordinates[index*3+2]).filter(Boolean).length;
+    expect(changedDepths).toBeGreaterThan(sculpture.coordinates.length/6);
+  });
   it('detects an occluding duplicate',()=>{const input=request(2,1),rays=pixelRays(input.camera,2,1);expect(verifyFirstHits(input,rays,Int32Array.from([0,0,-5,0,0,-5]))).toBe(false);});
 });

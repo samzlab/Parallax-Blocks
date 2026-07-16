@@ -6,17 +6,32 @@ const mix = (value:number) => { value=Math.imul(value^(value>>>16),0x45d9f3b);va
 
 function assign(request:GenerationRequest,rays:Float64Array,offset:number):Int32Array|null{
   const {width,height}=request.image,{maxDepth,layerSpacing,blockDensity}=request.options;
-  const coordinates=new Int32Array(width*height*3),seen=new Set<string>();
+  const coordinates=new Int32Array(width*height*3),basis=cameraBasis(request.camera);
   const levels=Math.floor((maxDepth-1)/layerSpacing)+1;
   const activeLevels=Math.max(1,Math.round(1+(levels-1)*(1-blockDensity/100)));
   for(let pixel=0;pixel<width*height;pixel++){
-    const depth=(mix(request.seed^pixel)%activeLevels)*layerSpacing;
-    const t=offset+depth,at=pixel*3;
-    const x=Math.floor(request.camera.position[0]+rays[at]!*t);
-    const y=Math.floor(request.camera.position[1]+rays[at+1]!*t);
-    const z=Math.floor(request.camera.position[2]+rays[at+2]!*t);
-    const key=`${x},${y},${z}`;if(seen.has(key))return null;seen.add(key);
-    coordinates[at]=x;coordinates[at+1]=y;coordinates[at+2]=z;
+    const at=pixel*3,firstLevel=mix(request.seed^pixel)%activeLevels;
+    let assigned=false;
+    for(let step=0;step<activeLevels*2-1;step++){
+      const delta=Math.ceil(step/2),level=firstLevel+(step%2===1?-delta:delta);
+      if(level<0||level>=activeLevels)continue;
+      const depth=level*layerSpacing,t=offset+depth;
+      const x=Math.floor(request.camera.position[0]+rays[at]!*t);
+      const y=Math.floor(request.camera.position[1]+rays[at+1]!*t);
+      const z=Math.floor(request.camera.position[2]+rays[at+2]!*t);
+      const bounds=projectBox(request.camera,basis,x,y,z,width,height);
+      if(!bounds)continue;
+      const [minX,minY,maxX,maxY]=bounds;
+      let exclusive=true;
+      for(let screenY=minY;screenY<=maxY&&exclusive;screenY++)for(let screenX=minX;screenX<=maxX;screenX++){
+        const other=screenY*width+screenX;if(other===pixel)continue;
+        const rayAt=other*3,ray:Vec3=[rays[rayAt]!,rays[rayAt+1]!,rays[rayAt+2]!];
+        if(rayBoxDistance(request.camera.position,ray,x,y,z)<Infinity){exclusive=false;break;}
+      }
+      if(!exclusive)continue;
+      coordinates[at]=x;coordinates[at+1]=y;coordinates[at+2]=z;assigned=true;break;
+    }
+    if(!assigned)return null;
   }
   return coordinates;
 }
@@ -80,14 +95,17 @@ export async function generateSculpture(request:GenerationRequest,onProgress:Pro
   const started=performance.now(),{width,height}=request.image;
   onProgress('ray-construction',0.05,'Constructing perspective rays');
   const rays=pixelRays(request.camera,width,height);
-  const minimum=Math.max(1,Math.ceil(0.95*height/Math.tan(request.camera.verticalFov*Math.PI/360)));
+  // At this distance a one-block face spans roughly one output pixel. Candidate
+  // filtering keeps neighboring pixel-center rays out while retaining seeded
+  // depth variation, so the verified view can be packed much more tightly.
+  const minimum=Math.max(1,Math.ceil(0.5*height/Math.tan(request.camera.verticalFov*Math.PI/360)));
   let offset=minimum,coordinates:Int32Array|null=null,attempt=0;
   while(offset<=request.options.maxOffset){
     if(isCancelled())throw new DOMException('Generation cancelled','AbortError');
     onProgress('feasibility-search',Math.min(0.55,0.1+attempt*0.06),`Testing sculpture offset ${offset}`);
     const candidate=assign(request,rays,offset);
     if(candidate){onProgress('visibility-verification',0.6,'Checking every pixel’s first intersection');if(verifyFirstHits(request,rays,candidate)){coordinates=candidate;break;}}
-    offset=Math.max(offset+1,Math.ceil(offset*1.35));attempt++;
+    offset=Math.max(offset+1,Math.ceil(offset*1.1));attempt++;
     await new Promise(resolve=>setTimeout(resolve,0));
   }
   if(!coordinates)throw new Error(`No collision-free voxel assignment was found before the ${request.options.maxOffset}-block offset cap. Increase FOV or reduce output resolution.`);
