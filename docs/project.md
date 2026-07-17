@@ -87,6 +87,14 @@ The algorithm should optimize for:
 - compactness
 - minimal block count
 
+Optional Backdrop Layer
+
+- Generate a silhouette-shaped contrast layer behind the complete sculpture.
+- Allow any bundled safe full-cube block, defaulting to Black Concrete.
+- Keep the layer behind the deepest image block from the designed camera.
+- Support a 1–20 block rear offset and 0–20 projected cells of outward edge padding.
+- Preview the layer and export it as a separate Litematica region.
+
 ⸻
 
 Preview

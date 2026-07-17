@@ -40,7 +40,8 @@ Open **User guide** in the header for the full workflow. Contextual `?` controls
 
 - **Target resolution** sets the maximum fitted width and height. Presets for 64, 128, and 256 pixels are available; aspect ratio is always preserved.
 - **Block density** changes how tightly the fixed block count is packed through the available depth. Higher values are more compact; lower values spread blocks farther for a stronger off-axis disguise.
+- **Backdrop** optionally adds a silhouette-shaped contrast layer behind the complete sculpture. Choose any bundled safe full-cube block, a 1–20 block rear offset, and 0–20 projected cells of outward edge padding. The default is Off, Black Concrete, offset 4, and padding 2.
 
 ## Export assumptions
 
-Exports target Minecraft Java 1.20.1 (`DataVersion` 3465) and use one positive-sized Litematica region. The correct camera pose is displayed in the Export screen because Litematica does not restore a designed viewing camera.
+Exports target Minecraft Java 1.20.1 (`DataVersion` 3465). The `.litematic` contains an **Anamorphic Art** region, a one-block **Camera Position** marker, and—when enabled—a separately toggleable **Backdrop** region. The correct camera pose is also displayed in the Export screen because Litematica does not restore a designed viewing camera.

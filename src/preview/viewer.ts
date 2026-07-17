@@ -28,7 +28,7 @@ export class SculptureViewer {
   }
   private animate=()=>{this.frame=requestAnimationFrame(this.animate);this.controls.update();this.renderer.render(this.scene,this.camera);};
   private resize(){const width=Math.max(1,this.host.clientWidth),height=Math.max(1,this.host.clientHeight);this.renderer.setSize(width,height,false);this.camera.aspect=width/height;this.camera.updateProjectionMatrix();}
-  setSculpture(sculpture:VoxelSculpture,palette:readonly BlockDefinition[]){
+  setSculpture(sculpture:VoxelSculpture,palette:readonly BlockDefinition[],allBlocks:readonly BlockDefinition[]){
     this.clear();this.sculpture=sculpture;this.guides.visible=true;
     const geometry=new THREE.BoxGeometry(1,1,1),groups=new Map<number,number[]>();
     sculpture.paletteIndices.forEach((value,index)=>{const group=groups.get(value)??[];group.push(index);groups.set(value,group);});
@@ -39,9 +39,17 @@ export class SculptureViewer {
       indices.forEach((block,instance)=>{const at=block*3;matrix.makeTranslation(sculpture.coordinates[at]!+0.5,sculpture.coordinates[at+1]!+0.5,sculpture.coordinates[at+2]!+0.5);mesh.setMatrixAt(instance,matrix);});
       mesh.instanceMatrix.needsUpdate=true;this.content.add(mesh);
     }
-    const [x,y,z]=sculpture.dimensions;const box=new THREE.Box3(new THREE.Vector3(0,0,0),new THREE.Vector3(x,y,z));
+    if(sculpture.backdrop){
+      const block=allBlocks.find(candidate=>candidate.id===sculpture.backdrop!.blockId);if(!block)throw new Error(`Unknown backdrop block ${sculpture.backdrop.blockId}.`);
+      const material=new THREE.MeshBasicMaterial({color:new THREE.Color(block.rgb[0]/255,block.rgb[1]/255,block.rgb[2]/255)}),count=sculpture.backdrop.coordinates.length/3,mesh=new THREE.InstancedMesh(geometry,material,count);
+      for(let instance=0;instance<count;instance++){const at=instance*3;matrix.makeTranslation(sculpture.backdrop.coordinates[at]!+.5,sculpture.backdrop.coordinates[at+1]!+.5,sculpture.backdrop.coordinates[at+2]!+.5);mesh.setMatrixAt(instance,matrix);}
+      mesh.instanceMatrix.needsUpdate=true;mesh.userData.layer='backdrop';this.content.add(mesh);
+    }
+    const [x,y,z]=sculpture.dimensions,min=sculpture.backdrop?[Math.min(0,sculpture.backdrop.min[0]),Math.min(0,sculpture.backdrop.min[1]),Math.min(0,sculpture.backdrop.min[2])] as const:[0,0,0] as const;
+    const max=sculpture.backdrop?[Math.max(x,sculpture.backdrop.min[0]+sculpture.backdrop.dimensions[0]),Math.max(y,sculpture.backdrop.min[1]+sculpture.backdrop.dimensions[1]),Math.max(z,sculpture.backdrop.min[2]+sculpture.backdrop.dimensions[2])] as const:[x,y,z] as const;
+    const box=new THREE.Box3(new THREE.Vector3(...min),new THREE.Vector3(...max));
     this.boundsHelper=new THREE.Box3Helper(box,0x9eb38a);this.guides.add(this.boundsHelper);
-    this.controls.target.set(x/2,y/2,z/2);this.camera.position.set(x*1.3,y*1.1,z*1.5);this.camera.far=Math.max(20_000,Math.hypot(x,y,z)*20);this.camera.updateProjectionMatrix();this.controls.update();
+    const size:Vec3=[max[0]-min[0],max[1]-min[1],max[2]-min[2]];this.controls.target.set((min[0]+max[0])/2,(min[1]+max[1])/2,(min[2]+max[2])/2);this.camera.position.set(max[0]+size[0]*1.3,max[1]+size[1]*1.1,max[2]+size[2]*1.5);this.camera.far=Math.max(20_000,Math.hypot(...size)*20);this.camera.updateProjectionMatrix();this.controls.update();
   }
   viewCorrectPosition(){
     if(!this.sculpture)return;

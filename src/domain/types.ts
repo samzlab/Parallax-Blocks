@@ -47,6 +47,14 @@ export interface GenerationOptions {
   layerSpacing: number;
   blockDensity: number;
   maxOffset: number;
+  backdrop: BackdropOptions;
+}
+
+export interface BackdropOptions {
+  enabled: boolean;
+  blockId: string;
+  offset: number;
+  edgePadding: number;
 }
 
 export interface GenerationDiagnostics {
@@ -58,6 +66,16 @@ export interface GenerationDiagnostics {
   disguiseScores: number[];
   elapsedMs: number;
   effectiveOffset: number;
+  backdropBlockCount: number;
+}
+
+export interface BackdropLayer {
+  coordinates: Int32Array;
+  min: Vec3;
+  dimensions: Vec3;
+  blockId: string;
+  offset: number;
+  edgePadding: number;
 }
 
 export interface VoxelSculpture {
@@ -66,6 +84,7 @@ export interface VoxelSculpture {
   dimensions: Vec3;
   min: Vec3;
   camera: CameraSpec;
+  backdrop: BackdropLayer | null;
   diagnostics: GenerationDiagnostics;
 }
 
@@ -81,6 +100,7 @@ export type GenerationPhase =
   | 'feasibility-search'
   | 'assignment'
   | 'visibility-verification'
+  | 'backdrop-generation'
   | 'disguise-analysis'
   | 'preview-preparation';
 

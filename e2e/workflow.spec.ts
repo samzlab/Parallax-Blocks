@@ -41,4 +41,17 @@ test('opens the guide and exposes the density control',async({page})=>{
   await expect(page.locator('#block-density')).toHaveValue('50');
   await page.locator('#block-density').fill('80');
   await expect(page.locator('#density-value')).toHaveText('80%');
+  await expect(page.locator('#backdrop-enabled')).not.toBeChecked();
+  await expect(page.locator('#backdrop-block')).toHaveValue('minecraft:black_concrete');
+  await expect(page.locator('#backdrop-offset')).toHaveValue('4');
+  await expect(page.locator('#backdrop-padding')).toHaveValue('2');
+  await expect(page.locator('#backdrop-block')).toBeDisabled();
+});
+
+test('generates, previews, and exports an enabled backdrop layer',async({page})=>{
+  await page.goto('/');await page.locator('#file-input').setInputFiles({name:'pixels.bmp',mimeType:'image/bmp',buffer:twoPixelBmp()});await page.getByRole('button',{name:'03 Camera'}).click();
+  await page.locator('#backdrop-enabled').check();await expect(page.locator('#backdrop-block')).toBeEnabled();await page.locator('#backdrop-block').selectOption('minecraft:stone');await page.locator('#backdrop-offset').fill('3');await page.locator('#backdrop-padding').fill('1');
+  await page.getByRole('button',{name:'04 Generate'}).click();await page.getByRole('button',{name:'Generate sculpture'}).click();await expect(page.locator('#viewer canvas')).toBeVisible();await expect(page.locator('#preview-legend')).toContainText('Backdrop · Stone');
+  await page.getByRole('button',{name:'06 Export'}).click();await expect(page.getByText('First-hit and backdrop depth verified')).toBeVisible();await expect(page.locator('#export-summary')).toContainText('Stone');
+  const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'Download .litematic'}).click();expect((await downloadPromise).suggestedFilename()).toBe('Anamorphic-Art.litematic');
 });
