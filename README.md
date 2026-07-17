@@ -18,7 +18,7 @@ Run the reproducible 256×256 solver benchmark with `pnpm benchmark`.
 
 ## Palette regeneration
 
-The bundled palette contains numerical average colors only. To recalculate them from a locally installed, licensed Minecraft 1.20.1 client archive:
+The bundled palette contains 120 safe full-cube blocks. Its 60 expanded entries were selected from opaque Minecraft 1.20.1 textures to fill perceptual gaps in the original concrete, wool, terracotta, and natural-color set. To recalculate their face-weighted average colors from a locally installed, licensed Minecraft 1.20.1 client archive:
 
 ```sh
 pnpm palette:extract /path/to/1.20.1.jar

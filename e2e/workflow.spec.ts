@@ -37,6 +37,7 @@ test('opens the guide and exposes the density control',async({page})=>{
   await expect(page.getByRole('heading',{name:'How to build anamorphic art'})).toBeVisible();
   await expect(page.getByText('Good starting point')).toBeVisible();
   await page.getByRole('button',{name:'Close user guide'}).click();
+  await page.getByRole('button',{name:'02 Palette'}).click();await page.getByRole('button',{name:'Safe full cubes'}).click();await expect(page.locator('#selected-count')).toHaveText('120 safe full-cube blocks selected');
   await page.getByRole('button',{name:'03 Camera'}).click();
   await expect(page.locator('#block-density')).toHaveValue('50');
   await page.locator('#block-density').fill('80');
